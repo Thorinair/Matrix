@@ -54,7 +54,7 @@ bool    sensitivityPress = false;
 
 #define COLOR_DEF 0
 #define COLOR_EPR 4
-uint8_t colorCounts[MODE_CNT] = {15};
+uint8_t colorCounts[MODE_CNT] = {16};
 uint8_t color[MODE_CNT] = {COLOR_DEF};
 bool    colorPress = false;
 
@@ -543,8 +543,23 @@ void drawMode_EQPro() {
             }
             break;
 
+        // Static GREEN fading to RED clip peaks
+        case 14:
+        
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 10; j++) {
+                    if (j < bins[i]) {                      
+                        matrix[9-j][i] = strip.Color((brightness / 10) * (j+1), brightness - ((brightness / 10) * (j+1)), 0);
+                    }
+                    else {
+                        matrix[9-j][i] = strip.Color(0, 0, 0);
+                    }
+                }
+            }
+            break;
+
         // BLUE with PURPLE peaks
-        case 14:   
+        case 15:   
         
             for (i = 0; i < 10; i++) {
                 for (j = 0; j < 10; j++) {

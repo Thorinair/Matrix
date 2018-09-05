@@ -26,6 +26,7 @@
 #include <FHT.h> // include the library
 
 // EEPROM
+#define EEPROM_RESET         false
 #define EEPROM_SAVED_ADDRESS 0
 #define EEPROM_SAVED_VALUE   1
 
@@ -51,9 +52,9 @@ bool    brightnessPress = false;
 uint8_t sensitivity = SENSITIVITY_DEF;
 bool    sensitivityPress = false;
 
-#define COLOR_CNT 2
 #define COLOR_DEF 0
 #define COLOR_EPR 4
+uint8_t colorCounts[MODE_CNT] = {2};
 uint8_t color[MODE_CNT] = {COLOR_DEF};
 bool    colorPress = false;
 
@@ -82,7 +83,7 @@ uint16_t delayProfile = NOISE_WAIT;
 
 
 // Info bar
-#define INFO_BAR_FADE 100
+#define INFO_BAR_FADE 200
 uint16_t infoBarFade = 0;
 uint8_t  infoBarValue;
 
@@ -126,7 +127,7 @@ void processButtons();
 void drawVisualiser();
 void drawInfoBar();
 void drawNoiseDebug();
-void drawMode_Equalizer();
+void drawMode_EQPro();
 
 // Matrix pushing
 void pushMatrix();
@@ -135,7 +136,7 @@ void pushMatrix();
 
 // Setup
 void setupSettings() {
-    if (EEPROM.read(EEPROM_SAVED_ADDRESS) != EEPROM_SAVED_VALUE) {
+    if (EEPROM.read(EEPROM_SAVED_ADDRESS) != EEPROM_SAVED_VALUE || EEPROM_RESET) {
         EEPROM.write(EEPROM_SAVED_ADDRESS, EEPROM_SAVED_VALUE);
         
         EEPROM.write(MODE_EPR, mode);
@@ -224,7 +225,7 @@ void processBins() {
 void processButtons() {
     if (digitalRead(PIN_BUTTON_COLOR) == HIGH && !colorPress) {
         colorPress = true;
-        if (color[mode] >= COLOR_CNT - 1)
+        if (color[mode] >= colorCounts[mode] - 1)
             color[mode] = 0;
         else
             color[mode]++;
@@ -279,7 +280,9 @@ void processButtons() {
 // Visualiser drawing
 void drawVisualiser() {
     switch (mode) {
-        case 0: drawMode_Equalizer(); break;
+        // MODE: EQPro
+        // Equalizer-like horizontal visualisation with lowest frequencies being on the left.
+        case 0: drawMode_EQPro(); break;
     }
     
     drawInfoBar();
@@ -290,7 +293,7 @@ void drawInfoBar() {
         uint8_t i;
         for (i = SENSITIVITY_MIN; i <= SENSITIVITY_MAX; i++) {
             if (i <= sensitivity)
-                matrix[MATRIX_ROWS - 1][MATRIX_COLS - 1 + SENSITIVITY_MIN - i] = strip.Color(64, 64, 64);
+                matrix[MATRIX_ROWS - 1][MATRIX_COLS - 1 + SENSITIVITY_MIN - i] = strip.Color(brightness, brightness, brightness);
             else
                 matrix[MATRIX_ROWS - 1][MATRIX_COLS - 1 + SENSITIVITY_MIN - i] = strip.Color(0, 0, 0);
         } 
@@ -323,13 +326,14 @@ void drawNoiseDebug() {
     }
 }
 
-// MODE: Equalizer
-void drawMode_Equalizer() {
+// MODE: EQPro
+// Equalizer-like horizontal visualisation with lowest frequencies being on the left.
+void drawMode_EQPro() {
     uint8_t i, j;
     
     switch (color[mode]) {
 
-        // Green/Red volume changing
+        // GREEN changing to RED by individual volumes
         case 0:
         
             for (i = 0; i < 10; i++) {
@@ -344,7 +348,7 @@ void drawMode_Equalizer() {
             }
             break;
 
-        // Blue with purple peaks
+        // BLUE with PURPLE peaks
         case 1:   
         
             for (i = 0; i < 10; i++) {

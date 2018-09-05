@@ -54,7 +54,7 @@ bool    sensitivityPress = false;
 
 #define COLOR_DEF 0
 #define COLOR_EPR 4
-uint8_t colorCounts[MODE_CNT] = {2};
+uint8_t colorCounts[MODE_CNT] = {3};
 uint8_t color[MODE_CNT] = {COLOR_DEF};
 bool    colorPress = false;
 
@@ -280,7 +280,7 @@ void processButtons() {
 // Visualiser drawing
 void drawVisualiser() {
     switch (mode) {
-        // MODE: EQPro
+        // MODE 0: EQPro
         // Equalizer-like horizontal visualisation with lowest frequencies being on the left.
         case 0: drawMode_EQPro(); break;
     }
@@ -326,15 +326,30 @@ void drawNoiseDebug() {
     }
 }
 
-// MODE: EQPro
+// MODE 0: EQPro
 // Equalizer-like horizontal visualisation with lowest frequencies being on the left.
 void drawMode_EQPro() {
     uint8_t i, j;
     
     switch (color[mode]) {
 
-        // GREEN changing to RED by individual volumes
-        case 0:
+        // Basic RED
+        case 0:   
+        
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 10; j++) {
+                    if (j < bins[i]) {  
+                        matrix[9-j][i] = strip.Color((brightness /  bins[i]) * i, 0, 0);                
+                    }
+                    else {
+                        matrix[9-j][i] = strip.Color(0, 0, 0);
+                    }
+                }
+            }   
+            break;  
+
+        // GREEN fading to RED by individual volumes
+        case 1:
         
             for (i = 0; i < 10; i++) {
                 for (j = 0; j < 10; j++) {
@@ -349,7 +364,7 @@ void drawMode_EQPro() {
             break;
 
         // BLUE with PURPLE peaks
-        case 1:   
+        case 2:   
         
             for (i = 0; i < 10; i++) {
                 for (j = 0; j < 10; j++) {

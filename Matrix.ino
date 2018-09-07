@@ -31,7 +31,7 @@
 #define EEPROM_SAVED_VALUE   1
 
 // Settings
-#define MODE_CNT 2
+#define MODE_CNT 3
 #define MODE_DEF 0
 #define MODE_EPR 1
 uint8_t mode = MODE_DEF;
@@ -54,7 +54,7 @@ bool    sensitivityPress = false;
 
 #define COLOR_DEF 0
 #define COLOR_EPR 4
-uint8_t colorCounts[MODE_CNT] = {16, 16};
+uint8_t colorCounts[MODE_CNT] = {16, 16, 16};
 uint8_t color[MODE_CNT] = {COLOR_DEF};
 bool    colorPress = false;
 
@@ -95,7 +95,7 @@ uint8_t  infoBarValue;
 //#define MULTI_MAP     3
 #define MULTI_POWER   10
 
-uint8_t decays[MODE_CNT] = {3, 1};
+float decays[MODE_CNT] = {3.0, 1.5, 1.5};
 
 uint16_t binNoises[] = {211, 195, 87, 86, 90, 90, 91};
 uint16_t binMultis[] = {30,  30,  4,  5,  5,  5,  50};
@@ -131,6 +131,7 @@ void drawNoiseDebug();
 // Modes
 void drawMode_EQPro();
 void drawMode_Pulse();
+void drawMode_VertiQ();
 
 // Matrix pushing
 void pushMatrix();
@@ -207,7 +208,7 @@ void processFHT() {
 void processBins() {
     uint8_t i;
 
-    int32_t decay = MULTI_MULTIS * (SENSITIVITY_MAX + 1 - sensitivity) / decays[mode];    
+    int32_t decay = (float) MULTI_MULTIS * (SENSITIVITY_MAX + 1 - sensitivity) / decays[mode];    
     float multi = (float) 1 / MULTI_MAP / MULTI_MULTIS / (SENSITIVITY_MAX + 1 - sensitivity);
     
     // Noise cleanup, scaling and decay calculations
@@ -289,6 +290,9 @@ void drawVisualiser() {
         // MODE 1: Pulse
         // Pulses the surface in a square to the beat.
         case 1: drawMode_Pulse(); break;
+        // MODE 2: VertiQ
+        // A vertical equalizer spreading from the middle with lowest frequencies being on the bottom.
+        case 2: drawMode_VertiQ(); break;
     }
     
     drawInfoBar();
@@ -818,6 +822,277 @@ void drawMode_Pulse() {
     }
 }
 
+// MODE 2: VertiQ
+// A vertical equalizer spreading from the middle with lowest frequencies being on the bottom.
+void drawMode_VertiQ() {
+    uint8_t i, j;
+    
+    switch (color[mode]) {
+
+        // Basic RED
+        case 0:  
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) {  
+                        matrix[9-i][4-j] = strip.Color((brightness / (bins[i] / 2)) * (j+1), 0, 0);    
+                        matrix[9-i][5+j] = strip.Color((brightness / (bins[i] / 2)) * (j+1), 0, 0);                
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            } 
+            break;  
+
+        // Basic ORANGE
+        case 1:  
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) {  
+                        matrix[9-i][4-j] = strip.Color((brightness / (bins[i] / 2)) * (j+1), (brightness / 2 / (bins[i] / 2)) * (j+1), 0);    
+                        matrix[9-i][5+j] = strip.Color((brightness / (bins[i] / 2)) * (j+1), (brightness / 2 / (bins[i] / 2)) * (j+1), 0);                
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            } 
+            break; 
+
+        // Basic YELLOW
+        case 2:  
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) {  
+                        matrix[9-i][4-j] = strip.Color((brightness / (bins[i] / 2)) * (j+1), (brightness / (bins[i] / 2)) * (j+1), 0);    
+                        matrix[9-i][5+j] = strip.Color((brightness / (bins[i] / 2)) * (j+1), (brightness / (bins[i] / 2)) * (j+1), 0);                
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            } 
+            break; 
+
+        // Basic LIME
+        case 3:  
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) {  
+                        matrix[9-i][4-j] = strip.Color((brightness / 2 / (bins[i] / 2)) * (j+1), (brightness / (bins[i] / 2)) * (j+1), 0);    
+                        matrix[9-i][5+j] = strip.Color((brightness / 2 / (bins[i] / 2)) * (j+1), (brightness / (bins[i] / 2)) * (j+1), 0);                
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            } 
+            break; 
+
+        // Basic GREEN
+        case 4:  
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) {  
+                        matrix[9-i][4-j] = strip.Color(0, (brightness / (bins[i] / 2)) * (j+1), 0);    
+                        matrix[9-i][5+j] = strip.Color(0, (brightness / (bins[i] / 2)) * (j+1), 0);                
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            } 
+            break; 
+
+        // Basic TURQUOISE
+        case 5:  
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) {  
+                        matrix[9-i][4-j] = strip.Color(0, (brightness / (bins[i] / 2)) * (j+1), (brightness / 2 / (bins[i] / 2)) * (j+1));    
+                        matrix[9-i][5+j] = strip.Color(0, (brightness / (bins[i] / 2)) * (j+1), (brightness / 2 / (bins[i] / 2)) * (j+1));                
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            } 
+            break; 
+
+        // Basic CYAN
+        case 6:  
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) {  
+                        matrix[9-i][4-j] = strip.Color(0, (brightness / (bins[i] / 2)) * (j+1), (brightness / (bins[i] / 2)) * (j+1));    
+                        matrix[9-i][5+j] = strip.Color(0, (brightness / (bins[i] / 2)) * (j+1), (brightness / (bins[i] / 2)) * (j+1));                
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            } 
+            break; 
+
+        // Basic SKY BLUE
+        case 7:  
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) {  
+                        matrix[9-i][4-j] = strip.Color(0, (brightness / 2 / (bins[i] / 2)) * (j+1), (brightness / (bins[i] / 2)) * (j+1));    
+                        matrix[9-i][5+j] = strip.Color(0, (brightness / 2 / (bins[i] / 2)) * (j+1), (brightness / (bins[i] / 2)) * (j+1));                
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            } 
+            break; 
+
+        // Basic BLUE
+        case 8:  
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) {  
+                        matrix[9-i][4-j] = strip.Color(0, 0, (brightness / (bins[i] / 2)) * (j+1));    
+                        matrix[9-i][5+j] = strip.Color(0, 0, (brightness / (bins[i] / 2)) * (j+1));                
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            } 
+            break; 
+
+        // Basic PURPLE
+        case 9:  
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) {  
+                        matrix[9-i][4-j] = strip.Color((brightness / 2 / (bins[i] / 2)) * (j+1), 0, (brightness / (bins[i] / 2)) * (j+1));    
+                        matrix[9-i][5+j] = strip.Color((brightness / 2 / (bins[i] / 2)) * (j+1), 0, (brightness / (bins[i] / 2)) * (j+1));                
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            } 
+            break; 
+
+        // Basic MAGENTA
+        case 10:  
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) {  
+                        matrix[9-i][4-j] = strip.Color((brightness / (bins[i] / 2)) * (j+1), 0, (brightness / (bins[i] / 2)) * (j+1));    
+                        matrix[9-i][5+j] = strip.Color((brightness / (bins[i] / 2)) * (j+1), 0, (brightness / (bins[i] / 2)) * (j+1));                
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            } 
+            break; 
+
+        // Basic PINK
+        case 11:  
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) {  
+                        matrix[9-i][4-j] = strip.Color((brightness / (bins[i] / 2)) * (j+1), 0, (brightness / 2 / (bins[i] / 2)) * (j+1));    
+                        matrix[9-i][5+j] = strip.Color((brightness / (bins[i] / 2)) * (j+1), 0, (brightness / 2 / (bins[i] / 2)) * (j+1));                
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            } 
+            break; 
+
+        // Basic WHITE
+        case 12:  
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) {  
+                        matrix[9-i][4-j] = strip.Color((brightness / (bins[i] / 2)) * (j+1), (brightness / (bins[i] / 2)) * (j+1), (brightness / (bins[i] / 2)) * (j+1));    
+                        matrix[9-i][5+j] = strip.Color((brightness / (bins[i] / 2)) * (j+1), (brightness / (bins[i] / 2)) * (j+1), (brightness / (bins[i] / 2)) * (j+1));                
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            } 
+            break; 
+
+        // GREEN fading to RED by individual volumes
+        case 13:        
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) {  
+                        matrix[9-i][4-j] = strip.Color(brightness / 10 * bins[i], max(brightness - brightness / 10 * bins[i], 0), 0);
+                        matrix[9-i][5+j] = strip.Color(brightness / 10 * bins[i], max(brightness - brightness / 10 * bins[i], 0), 0);
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            }
+            break;
+
+        // Static GREEN fading to RED clip peaks
+        case 14:        
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) { 
+                        matrix[9-i][4-j] = strip.Color((brightness / 5) * (j+1), brightness - ((brightness / 5) * (j+1)), 0);
+                        matrix[9-i][5+j] = strip.Color((brightness / 5) * (j+1), brightness - ((brightness / 5) * (j+1)), 0);
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            }
+            break;
+
+        // BLUE with PURPLE peaks
+        case 15:           
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 5; j++) {
+                    if (j < bins[i] / 2) {              
+                        if (j == bins[i] / 2 - 1) {
+                            matrix[9-i][4-j] = strip.Color(brightness / 2, 0, brightness);
+                            matrix[9-i][5+j] = strip.Color(brightness / 2, 0, brightness);
+                        }
+                        else {
+                            matrix[9-i][4-j] = strip.Color(0, 0, (brightness / (bins[i] / 2)) * (j+1));  
+                            matrix[9-i][5+j] = strip.Color(0, 0, (brightness / (bins[i] / 2)) * (j+1));  
+                        }
+                    }
+                    else {
+                        matrix[9-i][4-j] = strip.Color(0, 0, 0);
+                        matrix[9-i][5+j] = strip.Color(0, 0, 0);
+                    }
+                }
+            }   
+            break;  
+
+    }
+}
 
 // Matrix pushing
 void pushMatrix() {  

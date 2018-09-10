@@ -4,8 +4,13 @@
 #endif
 
 #include <EEPROM.h>
+#include <SoftwareSerial.h>
+#include <Brain.h>
 
 // Pins
+#define PIN_RX 2
+#define PIN_TX 3
+
 #define PIN_BUTTON_SENSITIVITY 4
 #define PIN_BUTTON_BRIGHTNESS  5
 #define PIN_BUTTON_MODE        6
@@ -54,7 +59,7 @@ bool    sensitivityPress = false;
 
 #define COLOR_DEF 0
 #define COLOR_EPR 4
-uint8_t colorCounts[MODE_CNT] = {16, 16, 16};
+uint8_t colorCounts[MODE_CNT] = {17, 16, 16};
 uint8_t color[MODE_CNT] = {COLOR_DEF};
 bool    colorPress = false;
 
@@ -111,6 +116,10 @@ struct structBinMap {
     //int bins[BINS_DEST][2]   = {{0, 1}, {0, 1}, {1, 2}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {4, 5}, {5, 6}, {5, 6}};
 } binMap;
 
+// EEG
+SoftwareSerial eegSerial(PIN_RX, PIN_TX);
+Brain eeg(eegSerial);
+
 
 // Setup
 void setupSettings();
@@ -121,6 +130,7 @@ void setupRegisters();
 // FHT and processing
 void processFHT();
 void processBins();
+void processEEG();
 void processButtons();
 
 // Visualiser drawing
@@ -187,7 +197,7 @@ void setupRegisters() {
 // FHT and processing
 void processFHT() {
     // Signal capture and FHT
-    cli();  // UDRE interrupt slows this way down on arduino1.0
+    //cli();  // UDRE interrupt slows this way down on arduino1.0
     for (uint8_t n = 0 ; n < FHT_N ; n++) { // save 128 samples
         while(!(ADCSRA & 0x10)); // wait for adc to be ready
         ADCSRA = 0xf5; // restart adc
@@ -202,7 +212,7 @@ void processFHT() {
     fht_reorder(); // reorder the data before doing the fht
     fht_run(); // process the data in the fht
     fht_mag_octave(); // take the output of the fht
-    sei();    
+    //sei();    
 }
 
 void processBins() {
@@ -223,6 +233,16 @@ void processBins() {
     // Linear upscaling to 10 bins
     for (i = 0; i < BINS_DEST; i++) {
         bins[i] = ((float)oldBins[binMap.bins[i][0]] * binMap.ratios[i][0] + oldBins[binMap.bins[i][1]] * binMap.ratios[i][1]) * multi;
+    }
+}
+
+void processEEG() {
+    // Expect packets about once per second.
+    // The .readCSV() function returns a string (well, char*) listing the most recent brain data, in the following format:
+    // "signal strength, attention, meditation, delta, theta, low alpha, high alpha, low beta, high beta, low gamma, high gamma"
+    if (eeg.update()) {
+        Serial.println(eeg.readErrors());
+        Serial.println(eeg.readCSV());
     }
 }
 
@@ -569,6 +589,22 @@ void drawMode_EQPro() {
                 }
             }   
             break;  
+
+        // BLUE meditation vs RED attention
+        case 16:  
+            int16_t calc = (min(max(eeg.readAttention() - eeg.readMeditation(), -30), 30) + 30) / 6;
+            
+            for (i = 0; i < 10; i++) {
+                for (j = 0; j < 10; j++) {
+                    if (j < bins[i]) {  
+                        matrix[9-j][i] = strip.Color((brightness / 10) * calc, 0, brightness - (brightness / 10) * calc);                
+                    }
+                    else {
+                        matrix[9-j][i] = strip.Color(0, 0, 0);
+                    }
+                }
+            }   
+            break; 
              
     }
 }
@@ -1111,7 +1147,8 @@ void pushMatrix() {
 }
 
 void setup() {  
-    Serial.begin(115200);
+    eegSerial.begin(9600);
+    Serial.begin(9600);
 
     setupSettings();
     setupPins();
@@ -1122,11 +1159,12 @@ void setup() {
     strip.show();
 }
 
-void loop() {      
+void loop() {  
+    /*    
     while(1) {
+        */
         processFHT();
         //Serial.println(fht_oct_out[5]); 
-        
         if (!PROFILE_NOISES) {
             processBins(); 
             drawVisualiser();
@@ -1136,7 +1174,8 @@ void loop() {
         }
         
         pushMatrix(); 
-    
         processButtons();
-    } 
+        
+        processEEG();
+    //} 
 }
